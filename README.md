@@ -89,6 +89,7 @@ var ary = ['1','2'];
 - 学习`String.prototype.replace()`方法，完成以下需求：  
  win32/win64及其上，通过git命令:
 `git rev-parse --show-toplevel`获取项目本地目录路径的时候存在一个获取不准确的bug，假设获取到的路径转化后是：`D:/d/workbench/f2ehint-hook`，请使用`String.prototype.replace()`方法将其转化为：`D:/workbench/f2ehint-hook`:
+
  ```javascript
  // TODO:完成替换匹配正则
  var regexp = ; 
@@ -96,7 +97,8 @@ var ary = ['1','2'];
  path = path.replace(regexp, '$1');
  console.log(path);
  ```
-操作数字的parseInt()/parseFloat()等方法，字符串的String.prototype.substr()/String.prototype.substring()/String.prototype.slice()/String.prototype.match()/String.prototype.replace()等基本操作方法请熟练掌握。  
+ 
+另外，操作数字的parseInt()/parseFloat()等方法，字符串的String.prototype.substr()/String.prototype.substring()/String.prototype.slice()/String.prototype.match()/String.prototype.replace()等基本操作方法请熟练掌握。  
 
 ### 题目3：实现简单的Promise
 能够减少js金字塔式的异步回调的方法特别多，比如：Promise、async/await、Generator等。今天我们就实现一个简单的Promise，以理解其基本原理，更详细的使用方式可参考q.js、jQuery.js等库的API使用方法。阅读下面的代码，完成部分未完成的部分。
