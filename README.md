@@ -87,7 +87,7 @@ var ary = ['1','2'];
 // TODO:
 ```
 -学习`String.prototype.replace()`方法，完成以下需求：  
- win32/win64及其上，通过git命令:`git rev-parse --show-toplevel`获取项目目录路径的时候存在一个不准确的bug，假设获取到的路径转化后是：`D:/d/workbench/f2ehint-hook`，请使用`String.prototype.replace()`将其转化为：`D:/workbench/f2ehint-hook`:
+ win32/win64及其上，通过git命令:`git rev-parse --show-toplevel`获取项目本地目录路径的时候存在一个不准确的bug，假设获取到的路径转化后是：`D:/d/workbench/f2ehint-hook`，请使用`String.prototype.replace()`将其转化为：`D:/workbench/f2ehint-hook`:
  ```javascript
  // TODO:完成替换匹配正则
  var regexp = ; 
