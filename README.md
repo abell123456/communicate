@@ -86,4 +86,49 @@ TodoCtrl();
 var ary = ['1','2'];
 // TODO:
 ```
+### 实现简单的Promise
+能够减少js金字塔式的异步回调的方法特别多，比如：Promise、async/await、Generator等。今天我们就实现一个简单的Promise，以理解其基本原理，更详细的使用方式可参考q.js、jQuery.js等库的API使用方法。阅读下面的代码，完成部分未完成的部分。
+```javascript
+var noop = function() {};
 
+function Promise() {
+	this.callbacks = [];
+}
+
+Promise.prototype = {
+	constructor: Promise,
+
+	resolve: function(result) {
+		// TODO:
+	},
+
+	reject: function(result) {
+		// TODO:
+	},
+
+	complete: function(type, result) {
+		while (this.callbacks[0]) {
+			this.callbacks.shift()[type].call(this, result);
+		}
+	},
+
+	then: function(successHandler, failureHandler) {
+		this.callbacks.push({
+			resolve: successHandler || noop,
+			reject: failureHandler || noop
+		});
+	}
+};
+
+// 测试
+var p = new Promise();
+
+setTimeout(function() {
+	console.log('setTimeout');
+	p.resolve('test');
+}, 2000);
+
+p.then(function(result) {
+	console.log(result);
+});
+```
