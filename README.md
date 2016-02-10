@@ -132,3 +132,33 @@ p.then(function(result) {
 	console.log(result);
 });
 ```
+### 题目4：使用原生js实现事件代理
+当我们需要给某个元素的所有子元素添加事件处理的时候，使给每一个子元素添加事件代理，一方面会增添内存消耗，另一方面也会增加性能消耗。此时，使用事件代理能够很好的解决此问题。事件代理的主要原理就是只给父元素添加事件绑定，然后增添需要代理的子元素集合，如果当前点击的元素在子元素集合中，就执行事件处理函数。  
+简单起见，假设我们的浏览器支持`document.querySelector()/document.querySelectorAll()`API，事件添加使用`el.addEventListener()`方法，那么我们可以简单的实现一个事件代理。  
+```html
+<ul id="test">
+	<li>1</li>
+	<li>2</li>
+	<li class="active">3</li>
+	<li class="active">4</li>
+</ul>
+```
+```javascript
+function delegate(parentEl, child, eventName, handler) {
+	var childCollection = parentEl.querySelectorAll(child);
+	// TODO:使用Array.prototype.slice()方法将集合转化为真正的数组
+	var childs = ;
+
+	parentEl.addEventListener(eventName, function(e) {
+		var eventTarget = e.target;
+		
+		if (~childs.indexOf(eventTarget)) {
+			handler(e);
+		}
+	});
+}
+
+delegate(document.querySelector('#test'), 'li.active', 'click', function(e) {
+	console.log(e.target);
+});
+```
