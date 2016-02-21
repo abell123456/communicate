@@ -246,7 +246,7 @@ power('demo').html().css().on();
 </script>
 ```
 从服务端请求回来要渲染的数据是：
-```json
+```javascript
 {
 	is_selected: true,
 	value: 'test',
