@@ -108,11 +108,11 @@ function isFunction(fn){
 }
 
 function isObject(obj){
-    return toString.call(fn) === '[object Object]';
+    return toString.call(obj) === '[object Object]';
 }
 
 function isString(str){
-    return toString.call(fn) === '[object String]';
+    return toString.call(str) === '[object String]';
 }
 
 function power(selector, context){
