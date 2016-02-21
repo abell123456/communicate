@@ -228,3 +228,9 @@ power.fn.extend({
     }
 });
 ```
+这样，我们就可以像jQuery那样实现链式调用了：
+```javascript
+power('demo').html().css().on();
+```
+是不是很酷？！真的很酷！
+# 实现前端模板引擎
