@@ -294,18 +294,18 @@ var data = new Function('data', 'return data;')({
 
 console.log(data);
 ```
-基本的使用就是这样。 
-**理解eval（或with）**
+基本的使用就是这样。   
+**理解eval（或with）**  
 eval的作用也是类似于Function，但是它可以直接执行js代码字符串，比如可以这样做变量声明：
 ```javascript
 eval('var a = 1;var b = 2;');
 ```
 而with则是在某个作用域内执行代码，因为js引擎不能对其内部的代码执行进行优化，所以执行一般比较低下。细节的问题可以自己再额外去学习。
-**实现思路**
+**实现思路**  
 理解了Function的使用，那么我们就可以理顺下我们的实现思路了。其核心思路就是：**不同模板对应不同的渲染函数，组装通过Function来生成函数实例的字符串并返回生成的函数，再以data数据为参数渲染出最终结果即可**。 
 假定我们的模板引擎标识符是：  
 - 代码执行标识是：`<%%>`
-- 直接取值标识是：`<%=%>`  
+- 直接取值标识是：`<%=%>`   
 那么我们的compileTpl()函数的轮廓大概是：
 ```javascript
 function compileTpl(str){
@@ -332,6 +332,7 @@ var template_keys = '';
 for(var key in data){
 	template_keys += ('var '+ key + '=data." + key + ';');
 }
+
 eval(template_keys);
 ```
 当然这里也可以用with来实现，自己可以尝试下。  
@@ -343,6 +344,7 @@ for(var key in data){
 	template_keys += ('var '+ key + '=data." + key + ';');
 }
 eval(template_keys);
+
 var htmlSecs = [];
 ```
 接下来，我们只需要将模板解析成html片段，然后push到数组中。这一块比较难理解。    
