@@ -53,6 +53,7 @@ power.prototype = {
 };
 ```
 对于constructor，获得一个Function函数实例的时候，其原型里面默认就会有一个constructor属性，指向该函数。那么当我们将函数原型指向另一个原型对象的时候，我们需要重置constructor的值，这样我们后面就可以在实例里面调用`this.constructor`获取到原构造函数。  
+**步骤2：实现无new实例化**   
 因为我们的目标是调用的时候不需要显式new实例化，那么我们可以执行函数即返回一个new的实例，为了方便，我们可以将要返回的实例的构造函数设置为power的原型上的一个属性，一般叫：init：
 ```javascript
 function power(selector){
@@ -68,6 +69,7 @@ power.prototype = {
 };
 ```
 上面的构造函数，当我们执行new操作后，返回一个实例，那么我们可以将通过selector获取的DOM元素放置到实例上，然后所有的方法都会对实例的指向DOM元素属性来进行操作。
+**步骤3：操作实例的DOM元素**   
 那为了方便起见，我们可以将对象设置为一个类数组，用：0、1等下标来指向DOM元素，并给出一个length属性标识元素个数。同时，为了书写方便，我们将power.fn也指向power.prototype.
 因此可以将上述构造函数改为如下：
 ```javascript
@@ -92,6 +94,7 @@ power.fn = power.prototype = {
 ```javascript
 power.fn.init.prototype = power.fn;
 ```
+**步骤4：完整的基础框架**   
 这样，我们给`power.fn`的扩展就能直接扩展到实例上。下面，我们实现一个比较完整地基础框架，带有`css`，`attr`，`html`等常见方法，且带有上下文context。
 ```javascript
 var toString = {}.toString;
