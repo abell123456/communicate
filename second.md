@@ -153,6 +153,9 @@ power.fn = power.prototype = {
         } else if(selector.nodeType){
             this[0] = selector;
             this.length = 1;
+            
+            this.context = context;
+            this.selector = selector;
         }
         
         return this;
