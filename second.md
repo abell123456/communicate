@@ -260,7 +260,7 @@ power('demo').html().css().on();
 	]
 }
 ```
-我们渲染引擎方法是：compileTpl，调用则是：
+我们渲染引擎方法是：compileTpl()，调用则是：
 ```javascript
 var str = document.querySelector('#tpl').innerHTML;
 var data = {
@@ -276,6 +276,138 @@ var data = {
 	]
 };
 
+function compileTpl(){}
+
 console.log(compileTpl(str)(data));
 ```
 下面我们来实现compileTpl()方法。  
+**理解Function**  
+Function 构造器会创建一个新的 Function 对象。 在 JavaScript 中每个函数都是一个Function对象。使用方法：
+```javascript
+new Function ([arg1[, arg2[, ...argN]],] functionBody)
+```
+Function前面的所有参数都是真正的函数实例里的参数，最后一个参数是一个用于被真正执行的函数体字符串。譬如：
+```javascript
+var data = new Function('data', 'return data;')({
+	text: 1
+});
+
+console.log(data);
+```
+基本的使用就是这样。 
+**理解eval（或with）**
+eval的作用也是类似于Function，但是它可以直接执行js代码字符串，比如可以这样做变量声明：
+```javascript
+eval('var a = 1;var b = 2;');
+```
+而with则是在某个作用域内执行代码，因为js引擎不能对其内部的代码执行进行优化，所以执行一般比较低下。细节的问题可以自己再额外去学习。
+**实现思路**
+理解了Function的使用，那么我们就可以理顺下我们的实现思路了。其核心思路就是：**不同模板对应不同的渲染函数，组装通过Function来生成函数实例的字符串并返回生成的函数，再以data数据为参数渲染出最终结果即可**。 
+假定我们的模板引擎标识符是：  
+- 代码执行标识是：`<%%>`
+- 直接取值标识是：`<%=%>`  
+那么我们的compileTpl()函数的轮廓大概是：
+```javascript
+function compileTpl(str){
+	// str基本的处理
+	str = String(str)
+		.replace('&lt', '<')
+		.replace('&rt', '>')
+		.replace(/[\r\t\n]/g, '');
+		
+	var fnBody = '';
+	
+	// 返回针对str模板生成的函数实例
+	return new Function('data', fnBody);
+}
+```
+下面我们来完成fnBody部分。
+因为模板中的js代码部分都是直接以data属性来判断的：
+```html
+<%if(is_text){%>disabled<%}%>
+```
+所以我们可以将data的所有属性变成声明在函数内的变量：
+```javascript
+var template_keys = '';
+for(var key in data){
+	template_keys += ('var '+ key + '=data." + key + ';');
+}
+eval(template_keys);
+```
+当然这里也可以用with来实现，自己可以尝试下。  
+这样，我们就有了data的所有属性对应的局部变量，函数内部就可以直接来使用。下面我们就开始将模板内的函数代码部分变成fnBody内部可执行的代码。    
+因为我们最终的html字符串是一段段的，我们需要一个数组来存放这些片段。假设我们的数组叫：htmlSecs，那么代码变成下面这样：
+```javascript
+var template_keys = '';
+for(var key in data){
+	template_keys += ('var '+ key + '=data." + key + ';');
+}
+eval(template_keys);
+var htmlSecs = [];
+```
+接下来，我们只需要将模板解析成html片段，然后push到数组中。这一块比较难理解。    
+假设字符串是：<a><%=text%></a>,我们需要将<%=%>先转化为：typeof(text) === 'undefined'?'':text。然后是处理其中的<%%>格式。  
+<%部分我们需要处理成："');"。因为其左半部分不是%>的话就是普通html字符串，此部分我们是直接htmlSecs.push()进去的，所以<%刚好对应push()方法的右边括号部分，多个单引号则是push进去的是字符串，所以用单引号包裹。  
+那么对于%>部分，因为我们就是对<%if(boolean){%><div></div><%}%>中间的html字符串部分进行数组push操作，因此右半边转化为：htmlSecs.push('。
+于是我们可以单独抽象出此部分的操作为一个单独的函数：
+```javascript
+var dealTpl = function(str) {
+	var left = '<%',
+		right = '%>';
+		
+	return str
+		.replace(new RegExp(left + '=(.*?)' + right, 'g'), "',typeof($1)==='undefined'?'':$1,'")
+		.replace(new RegExp(left, 'g'), //TODO:)
+		.replace(new RegExp(right, 'g'), //TODO:);
+};
+```
+那么完整的compileTpl()方法就是：
+```javascript
+var compileTpl = function(str) {
+	str = String(str)
+		.replace('&lt', '<')
+		.replace('&rt', '>')
+		.replace(/[\r\t\n]/g, '');
+
+	var fnBody = [
+		"var htmlSecs=[];",
+		"var template_key='';",
+		"for(var key in templateData){",
+		"template_key+=('var '+key+'=templateData.'+key+';');",
+		"}",
+		"eval(template_key);",
+		"htmlSecs.push('"
+	].join('\n') + dealTpl(str) + [
+		"');",
+		"template_key=null;",
+		"return htmlSecs.join('');"
+	].join('\n');
+
+	return new Function('templateData', fnBody);
+};
+```
+完成后测试如下：
+```html
+<script type="text/tpl" id="tpl">
+	<div class="data-lang <%if(is_selected){%>selected<%}%>" data-value="<%=value%>">
+		<%for(var i = 0,j; j=ary[i++];){%>
+		<a href="#"><%= j.text %></a>
+		<%}%>
+	</div>
+</script>
+```
+```javascript
+var str = document.querySelector('#tpl').innerHTML;
+console.log(compileTpl(str)({
+	is_selected: true,
+	value: 'test',
+	ary: [{
+		text: 1
+	}, {
+		text: 2
+	}]
+})); // <div class="data-lang selected" data-value="test"><a href="#">1</a><a href="#">2</a></div>
+```
+上面就完成了一个最基本的模板渲染引擎。当然，我们还可以作进一步的功能丰富，比如：可以自定义引擎的符号（可以使{{}},{{=}}等），自定义helper(类似于handlebars的handlebars.registerHelper()方法)等。目前还有人基于Virtual-DOM实现了模板引擎，可以参考下：https://github.com/livoras/blog/issues/14
+
+## 题目3：实现前端模块化
