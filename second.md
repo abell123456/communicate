@@ -211,14 +211,20 @@ power.fn.extend({
     
     css: function(){
         // 略
+        
+        return this;
     },
 
     attr: function(){
         // 略
+        
+        return this;
     },
     
     html: function(){
         // 略
+        
+        return this;
     }
 });
 ```
