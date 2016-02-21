@@ -233,4 +233,49 @@ power.fn.extend({
 power('demo').html().css().on();
 ```
 是不是很酷？！真的很酷！
-# 实现前端模板引擎
+##题目2：实现前端模板引擎
+我们在开发的过程中，通常会将页面划分为多个模块，然后以模块为维度来进行开发。在每个模块开发的时候，我们通常又会将该模块划分为模板和数据，数据从服务端通过ajax请求回来，然后结合模板实现页面的渲染，类似于服务端的smarty，Node.js的ejs等。成熟的前端模板引擎有很多，比如：underscore.js的_.template()(可以去分析其源码)，handlebars等。今天我们实现一个能渲染基本数据，又能书写函数代码的模板引擎。先看下如何使用的例子。  
+假设我们的模板存在html页面的script元素中：
+```html
+<script type="text/tpl" id="tpl">
+	<div class="data-lang <%if(is_selected){%>selected<%}%>" data-value="<%=value%>">
+		<%for(var i = 0,j; j=ary[i++];){%>
+		<a href="#"><%= j.text %></a>
+		<%}%>
+	</div>
+</script>
+```
+从服务端请求回来要渲染的数据是：
+```json
+{
+	is_selected: true,
+	value: 'test',
+	ary: [
+		{
+			text: 1
+		},
+		{
+			text: 2
+		}
+	]
+}
+```
+我们渲染引擎方法是：compileTpl，调用则是：
+```javascript
+var str = document.querySelector('#tpl').innerHTML;
+var data = {
+	is_selected: true,
+	value: 'test',
+	ary: [
+		{
+			text: 1
+		},
+		{
+			text: 2
+		}
+	]
+};
+
+console.log(compileTpl(str)(data));
+```
+下面我们来实现compileTpl()方法。  
