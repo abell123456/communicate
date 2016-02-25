@@ -413,3 +413,286 @@ console.log(compileTpl(str)({
 上面就完成了一个最基本的模板渲染引擎。当然，我们还可以作进一步的功能丰富，比如：可以自定义引擎的符号（可以使{{}},{{=}}等），自定义helper(类似于handlebars的handlebars.registerHelper()方法)等。目前还有人基于Virtual-DOM实现了模板引擎，可以参考下：https://github.com/livoras/blog/issues/14
 
 ## 题目3：实现前端模块化
+如今的前端已经脱离了多年之前刀耕火种的时代，进入了工程化的时代。js语言自身没有模块的限制也可以在使用模块化框架后，辅助前端工程化（多个模块打包成一个一个文件等）得到了很好的解决，让多人的协同开发与合作变得更加容易，彼此的代码也不会再互相干扰。  
+下面，我们就实现模块化框架最核心的部分做简单的实现，理解了其实现原理，我们可以更好的使用模块化来进行项目的开发。  
+前端的模块化规范有AMD和CMD两种，AMD规范典型的实现代表是require.js，而CMD典型的实现代表则是sea.js，使用构建工具辅以任意的模块化框架，我们就可以像写Node.js似的书写前端代码。  
+假设我们的模块化规范如下：  
+- 每个js文件就是一个模块；
+- 每个模块都是以下面的形式来定义的：  
+```javascript
+define(id, deps, factory);
+```
+- factory函数须返回结果，以便其他模块来使用。  
+我们的使用示例如下：
+```html
+<script type="text/javascript" src="./module.js"></script>
+<script type="text/javascript" src="./index.js"></script>
+```
+```javascript
+// index.js
+define('index', ['a', 'b'], function(a, b) {
+    console.log('a:', a); // a: {name: "a", name1: "c-d"}
+    console.log('b:', b); // b: {name: "b", name1: "c-d"}
+});
+```
+```javascript
+// a.js
+define('a', ['c'], function(c) {
+
+    return {
+        name: 'a',
+        name1: c.name
+    };
+});
+```
+```javascript
+// b.js
+define('b', ['c'], function(c) {
+
+    return {
+        name: 'b',
+        name1: c.name
+    };
+});
+```
+```javascript
+// c.js
+define('c', ['d'], function(d) {
+
+    return {
+        name: 'c' + '-' + d.name
+    };
+});
+```
+```javascript
+// d.js
+define('d', function() {
+
+    return {
+        name: 'd'
+    };
+});
+```
+我们的嵌套层级已经比较深，如果能像上面那样打印出如期的结果就表明我们的基本功能实现了。  
+**理解JSONP**  
+通常，我们在解决单向跨域问题的时候，我们经常用到JSONP。那什么是JSONP呢？  
+JSONP的实现其实就是：  
+1、创建全局的函数，比如：
+```javascript
+function globalCallback(returnData){
+	console.log(returnData);
+}
+```
+2、创建script标签，将其url置为要请求的地址，地址后面加上对应的参数指定全局函数名（如：https://interface.com?callback=globalCallback;  
+3、然后将其插入DOM文档树，请求结束后服务端会返回如下形式的内容：
+```javascript
+globalCallback({
+	status: true,
+	data:[]
+});
+```
+因为script标签的特殊性，globalCallback函数就会被调用执行。  
+这就是JSONP的原理所在，并不深奥。我们的前端模块化也是基于此来实现。  
+我们可以指定将script标签插入head标签中：
+```javascript
+var headEl = document.head || document.querySelector('head') || document.body;
+```
+下面我们定义插入函数：
+```javascript
+function insert(url, charset, cb) {
+        if (url.split('.').slice(-1) !== 'js') {
+            url += '.js';
+        }
+
+        if (arguments.length === 2) {
+            cb = charset;
+            charset = 'UTF-8';
+        }
+
+        var script = document.createElement('script');
+
+        script.onload = script.onreadystatechange = function() {
+            if (!this.readyState || /loaded|complete/.test(this.readyState)) {
+                typeof cb === 'function' && cb();
+            }
+
+            script.onload = script.onreadystatechange = null;
+        }
+
+        script.type = "text/javascript";
+        script.charset = charset;
+        script.src = url;
+
+        // TODO: 将script元素插入到head元素中
+        
+    }
+```
+剩下的我们就是实现全局的define函数就好了（全局的require()函数其实原理类似）。  
+其实define函数就分析两个方面，一个是从顶往下的依赖分析，一个则是从底往上的函数执行。我们一个个来。  
+首先，我们可以先定义三个需要用到的辅助变量：
+```javascript
+	// 模块统一管理对象
+    var modules = {};
+    // 存放已经记载的模块id
+    var loadedModulesIds = [];
+    // 存放已经记载完的模块
+    var loadedModules = [];
+```
+以及辅助工具函数：
+```javascript
+// 判断item是否在ary数组中
+function isInArray(ary, item) {
+    // TODO: 
+}
+```
+对于每一个通过define定义的模块，我们可以存储他的相关信息，如下：
+```javascript
+function define(id, deps, factory) {
+        if (arguments.length === 2) {
+            factory = deps;
+            deps = [];
+        }
+
+        var module = {
+            id: id,
+            deps: deps,
+            factory: factory
+        };
+        
+        
+}
+```
+然后我们将该模块相关信息存入：modules；并且视为该模块已加载（依赖还未加载）：
+```javascript
+function define(id, deps, factory) {
+        if (arguments.length === 2) {
+            factory = deps;
+            deps = [];
+        }
+
+        var module = {
+            id: id,
+            deps: deps,
+            factory: factory
+        };
+
+        modules[id] = module;
+
+        if (!isInArray(loadedModulesIds, id)) {
+            loadedModules.push(module);
+            loadedModulesIds.push(id);
+        }
+}
+```
+下面，我们就加载依赖模块，从而完整的define函数如下：
+```javascript
+function define(id, deps, factory) {
+        if (arguments.length === 2) {
+            factory = deps;
+            deps = [];
+        }
+
+        var module = {
+            id: id,
+            deps: deps,
+            factory: factory
+        };
+
+        modules[id] = module;
+
+        if (!isInArray(loadedModulesIds, id)) {
+            loadedModules.push(module);
+            loadedModulesIds.push(id);
+        }
+
+        if (!deps.length) {
+            // 没有依赖直接返回结果
+            return factory();
+        } else {
+            // 加载依赖
+            loadDeps(module, exec);
+        }
+    }
+```
+其中，loadDeps是加载依赖模块的函数，exec是所有依赖模块加载完成后的回调。他们分别如下：
+```javascript
+	// loadDeps函数
+	// 从上往下加载
+    var loadNum = 0;
+
+    function loadDeps(module, cb) {
+        var deps = module.deps;
+        var depsLength = deps.length;
+        var depsObj = {};
+        var id = module.id;
+
+        deps.forEach(function(dep, index) {
+            loadNum++;
+
+            // 加载完立即执行，然后执行回调
+            insert(dep, function() {
+                if (!isInArray(loadedModulesIds, id)) {
+                    loadedModules.push(module);
+                    loadedModulesIds.push(id);
+                }
+
+                if (!--loadNum) {
+                    // 全部加载完
+                    cb && cb();
+                }
+            });
+        });
+    }
+```
+其中的关键就是loadNum变量的控制。因为模块（js文件）加载完之后会立即执行，所以每个模块加载完后define函数都是就是立即执行的，所以会马上加载刚被加载完的模块的依赖模块，此时loadNum就会加1，每加载完一个模块该变量就减少1，直到所有模块都加载完，此时该变量的值变成0，这个时候我们就可以来调用我们的回调函数了。  
+所以总的一个执行顺序就是：define --> loadDeps --> loadNum++ --> insert --> define --> loadDeps --> loadNum++ --> insert......此时，才会去第一次执行第一个的insert函数的回调函数，才有机会执行loadNumn--，可以自己多去理一理。总之记住关键一点，就是加载一个js文件后，先执行js文件代码，后触发回调，这个可以自己实验下。  
+然后是exec()函数：
+```javascript
+// 从下往上执行
+    function exec() {
+        var collection = [];
+        var firstModule = loadedModules[0];
+        var factory = firstModule.factory;
+
+        // 收集依赖的模块
+        firstModule.deps.forEach(function(dep) {
+            collection.push(modules[dep]);
+        });
+		// 最顶层的模块的工厂函数使用后面的模块的工厂函数执行的返回结果
+        factory.apply(0, depsModulesExec(collection));
+
+        loadedModules = [];
+    }
+
+    function depsModulesExec(depsModules) {
+        var res = [];
+
+        depsModules.forEach(function(module) {
+            var factory = module.factory;
+
+            if (module.deps.length) {
+                var collection = [];
+
+                // 收集依赖的模块
+                module.deps.forEach(function(dep) {
+                    collection.push(modules[dep]);
+                });
+				// 递归实现
+                res.push(factory.apply(0, depsModulesExec(collection)));
+            } else {
+                res.push(factory());
+            }
+        });
+
+        return res;
+    }
+```
+经过第一步的模块收集，第二步只需要将所有模块的工厂函数从下往上一次执行，将最底下的函数的执行结果传给上面依赖它的模块使用，一直到最顶层的第一个函数即可。  
+基本的功能就是这样。其实我们还有几个问题没有很好地去解决，比如：  
+- 模块id与文件路径的匹配问题；
+- 文件路径的处理（sea.js有完善的路径处理方案）；
+- 如何引入（一般使用require()）非js文件。  
+结合构建工具，我们可以以Node.js的方式来书写前端代码，其实现原理就是：解析出js代码里的依赖模块，将各个模块使用自己的模块框架进行包装，然后按照依赖顺序最后打包进一个js文件中。具体可以参考这篇文章：[browserify--将js代码解析为AST树并解析AST树](http://blog.csdn.net/fendouzhe123/article/details/46890749)。  
+
+## 实现前端Class
+## 实现前端MVVM框架
